@@ -20,7 +20,13 @@ import sun.misc.Unsafe;
 
 import com.lmax.disruptor.dsl.ProducerType;
 import com.lmax.disruptor.util.Util;
-
+ /**
+  * 基础填充类
+  * @author     : MrFox
+  * @date       : 2022/1/3 7:58 PM
+  * @description:
+  * @version    :
+  */
 abstract class RingBufferPad
 {
     protected long p1, p2, p3, p4, p5, p6, p7;
@@ -35,6 +41,7 @@ abstract class RingBufferFields<E> extends RingBufferPad
 
     static
     {
+        //arrayIndexScale获取数组中一个元素占用的字节数，不同JVM实现可能有不同的大小
         final int scale = UNSAFE.arrayIndexScale(Object[].class);
         if (4 == scale)
         {
@@ -48,14 +55,17 @@ abstract class RingBufferFields<E> extends RingBufferPad
         {
             throw new IllegalStateException("Unknown pointer size");
         }
+        //TODO: 32 or 16 为什么是128呢
         BUFFER_PAD = 128 / scale;
         // Including the buffer pad in the array base offset
         REF_ARRAY_BASE = UNSAFE.arrayBaseOffset(Object[].class) + (BUFFER_PAD << REF_ELEMENT_SHIFT);
     }
 
+    // 用于进行 & 位与操作，实现高效的模操作
     private final long indexMask;
     private final Object[] entries;
     protected final int bufferSize;
+    // 生产者序列号
     protected final Sequencer sequencer;
 
     RingBufferFields(
@@ -76,6 +86,7 @@ abstract class RingBufferFields<E> extends RingBufferPad
 
         this.indexMask = bufferSize - 1;
         this.entries = new Object[sequencer.getBufferSize() + 2 * BUFFER_PAD];
+        //填充
         fill(eventFactory);
     }
 
